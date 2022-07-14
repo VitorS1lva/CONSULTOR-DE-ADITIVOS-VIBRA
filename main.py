@@ -1,9 +1,10 @@
 #UTF-8  LANG.: PT-BR
-import sqlite3
-import tkinter
-from tkinter import *
-from tkinter import ttk
-from PIL import ImageTk, Image
+import sqlite3 #banco de dados
+import tkinter #GUI
+from tkinter import * #GUI
+from tkinter import ttk #GUI
+from PIL import ImageTk, Image #GUI
+import base64 #GUI (imagens em B64)
 
 #inicio do laço da aplicação
 main_screen=Tk()
@@ -16,14 +17,29 @@ class Funcs():
         self.add_entry_deposito.delete(0, END)
         self.add_entry_estufa.delete(0, END)
         self.add_entry_transf.delete(0, END)
-        self.add_entry_visc.delete(0, END)
+        self.add_entry_visc1.delete(0, END)
+        self.add_entry_visc2.delete(0, END)
         self.add_entry_peso.delete(0, END)
         self.add_entry_dens.delete(0, END)
+
+    def limpar_campos_pesquisa(self):
+        self.ps_entry_codigo.delete(0, END)
+        self.ps_entry_aditivo.delete(0, END)
+        self.ps_entry_deposito.delete(0, END)
+        self.ps_entry_estufa.delete(0, END)
+        self.ps_entry_transf.delete(0, END)
+        self.ps_entry_visc1.delete(0, END)
+        self.ps_entry_visc2.delete(0, END)
+        self.ps_entry_peso.delete(0, END)
+        self.ps_entry_dens.delete(0, END)
+
     def conect_db(self):
-        self.conect=sqlite3.connect('banco_aditivos.db')
+        self.conect=sqlite3.connect('banco_adv.db')
         self.cursor=self.conect.cursor(); print('Conectando ao banco de dados')
+
     def desconect_db(self):
         self.conect.close()
+        
     def montar_tabelas(self):
         self.conect_db()
         ### criar tabela de aditivos
@@ -34,7 +50,8 @@ class Funcs():
                  deposito CHAR(40),
                  estufa CHAR(40),
                  transferencia CHAR(40),
-                 viscosidade CHAR(40),
+                 visc1 CHAR(40),
+                 visc2 CHAR(40),
                  peso INTEGER(20),
                  densidade INTEGER(20)
              );
@@ -43,63 +60,73 @@ class Funcs():
         self.conect.commit();
         print("Banco de dados criado")
         self.desconect_db()
+        
     def var_insercoes(self):
         self.codigo=self.add_entry_codigo.get()
         self.aditivo = self.add_entry_aditivo.get()
         self.deposito = self.add_entry_deposito.get()
         self.estufa = self.add_entry_estufa.get()
         self.transf = self.add_entry_transf.get()
-        self.visc = self.add_entry_visc.get()
+        self.visc1 = self.add_entry_visc1.get()
+        self.visc2 = self.add_entry_visc2.get()
         self.peso = self.add_entry_peso.get()
         self.dens = self.add_entry_dens.get()
+        
     def add_dados_db(self):
         #self.codigo=self.add_entry_codigo.get()
         self.var_insercoes()
         #chamando o sqlite3
         self.conect_db()
 
-        self.cursor.execute(""" INSERT INTO tabela_aditivos (aditivo, deposito, estufa, transferencia, viscosidade, peso, densidade)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""", (self.aditivo, self.deposito, self.estufa, self.transf,
-                                             self.visc, self.peso, self.dens))
+        self.cursor.execute(""" INSERT INTO tabela_aditivos (aditivo, deposito, estufa, transferencia, visc1, visc2, peso, densidade)
+            VALUES (?, ?, ?, ?, ?, ?, ?,?)""", (self.aditivo, self.deposito, self.estufa, self.transf,
+                                             self.visc1, self.visc2, self.peso, self.dens))
         self.conect.commit()
         self.desconect_db()
-        self.busca_dados_db()
+        self.busca_registro()
         self.limpar_campos()
-    def busca_dados_db(self):
-        self.listaAdv.delete(*self.listaAdv.get_children())
-        self.conect_db()
-        lista = self.cursor.execute(""" SELECT cod, aditivo, deposito, estufa, transferencia, viscosidade, peso, densidade 
-            FROM tabela_aditivos ORDER BY aditivo ASC; """)
-        for i in lista:
-           self.listaAdv.insert("", END, values=i)
-        self.desconect_db()
+        
     def busca_registro(self):
         self.conect_db()
         self.listaAdv.delete(*self.listaAdv.get_children())
 
-        self.add_entry_aditivo.insert(END, '%')
-        nome = self.add_entry_aditivo.get()
-        self.cursor.execute(""" SELECT cod, aditivo, deposito, estufa, transferencia, viscosidade, peso, densidade
+        self.ps_entry_aditivo.insert(END, '%')
+        nome = self.ps_entry_aditivo.get()
+        self.cursor.execute(""" SELECT cod, aditivo, deposito, estufa, transferencia, visc1, visc2, peso, densidade
                             FROM tabela_aditivos WHERE aditivo LIKE '%s' ORDER BY aditivo ASC""" % nome)
         buscanomeAdv=self.cursor.fetchall()
         for i in buscanomeAdv:
             self.listaAdv.insert("", END, values=i)
-        self.limpar_campos()
+        self.limpar_campos_pesquisa()
         self.desconect_db()
+
     def ondoubleclick(self, event):
         self.limpar_campos()
+        self.limpar_campos_pesquisa()
         self.listaAdv.selection()
 
         for n in self.listaAdv.selection():
-            col1, col2, col3, col4, col5, col6, col7, col8 = self.listaAdv.item(n, 'values')
+            col1, col2, col3, col4, col5, col6, col7, col8, col9 = self.listaAdv.item(n, 'values')
             self.add_entry_codigo.insert(END, col1)
             self.add_entry_aditivo.insert(END, col2)
             self.add_entry_deposito.insert(END, col3)
             self.add_entry_estufa.insert(END, col4)
             self.add_entry_transf.insert(END, col5)
-            self.add_entry_visc.insert(END, col6)
-            self.add_entry_peso.insert(END, col7)
-            self.add_entry_dens.insert(END, col8)
+            self.add_entry_visc1.insert(END, col6)
+            self.add_entry_visc2.insert(END, col7)
+            self.add_entry_peso.insert(END, col8)
+            self.add_entry_dens.insert(END, col9)
+
+            self.ps_entry_codigo.insert(END, col1)
+            self.ps_entry_aditivo.insert(END, col2)
+            self.ps_entry_deposito.insert(END, col3)
+            self.ps_entry_estufa.insert(END, col4)
+            self.ps_entry_transf.insert(END, col5)
+            self.ps_entry_visc1.insert(END, col6)
+            self.ps_entry_visc2.insert(END, col7)
+            self.ps_entry_peso.insert(END, col8)
+            self.ps_entry_dens.insert(END, col9)
+
     def deleta_campos(self):
         self.var_insercoes()
         self.conect_db()
@@ -107,179 +134,207 @@ class Funcs():
         self.conect.commit()
         self.desconect_db()
         self.limpar_campos()
-        self.busca_dados_db()
+        self.limpar_campos_pesquisa()
+        self.busca_registro()
+
     def alterar_campos(self):
         self.var_insercoes()
         self.conect_db()
         self.cursor.execute(""" UPDATE tabela_aditivos SET aditivo=?, deposito=?, estufa=?,
-         transferencia=?, viscosidade=?, peso=?, densidade=?
-         WHERE cod=? """, (self.aditivo, self.deposito, self.estufa, self.transf, self.visc, self.peso, self.dens, self.codigo))
+                            transferencia=?, visc1=?, visc2=?, peso=?, densidade=?
+                            WHERE cod=? """, (self.aditivo, self.deposito, self.estufa, self.transf, self.visc1, self.visc2, self.peso, self.dens, self.codigo))
         self.conect.commit()
         self.desconect_db()
-        self.busca_dados_db()
+        self.busca_registro()
         self.limpar_campos()
+
+    def imagens_64(self):
+        self.logovibra="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"
+        self.icovibra=''
 
 # estrutura da aplicação
 class Application(Funcs):
     def __init__(self):
+        self.imagens_64()
         self.main_screen=main_screen
         self.tela_principal_design()
         self.montar_tabelas()
-        self.busca_dados_db()
+        self.busca_registro()
         self.limpar_campos()
         self.deleta_campos()
         self.menu_bar()
         main_screen.mainloop()
+
+        # design tela de adição
     def tela_principal_design(self):
-        self.main_screen.title("CONSULTOR ADITIVOS VIBRA")
-        self.main_screen.geometry("650x500")
-        self.main_screen.resizable(True, True)
-        self.main_screen.configure(background='#004415')
-        self.main_screen.iconbitmap('imagem_2022-04-30_110511930.ico')
+        self.main_screen.title("ADIT-Mist")
+        self.main_screen.geometry("550x650")
+        self.main_screen.resizable(False, False)
+        self.main_screen.configure(background='#007e44')
+        self.main_screen.iconbitmap(self.icovibra)
 
-        ## frame icone vibra
-        im = Image.open('logovibra.png')
-        ph = ImageTk.PhotoImage(im)
-        self.icolabel=Label(self.main_screen, image=ph, compound=tkinter.CENTER)
-        self.icolabel.image=ph
-        self.icolabel.place(relx=0.53, rely=0.115, relwidth=0.45, relheight=0.32)
+        # logo lubrax
+        self.vibrapng=PhotoImage(data=base64.b64decode(self.logovibra))
+        self.icolabel=Label(self.main_screen, image=self.vibrapng, compound=tkinter.CENTER, background='#007e44')
+        self.icolabel.place(relx=0.07, rely=0.88, relwidth=0.85, relheight=0.1)
 
-        #treeview
+        ## treeview
         self.listaAdv = ttk.Treeview(self.main_screen, columns=('col1', 'col2', 'col3', 'col4', 'col5', 'col6',
-                                                                'col7', 'col8'))
-        self.listaAdv.place(relx=0.05, rely=0.48, relwidth=0.94, relheight=0.45)
-        self.listaAdv.heading("#0", tex='')
-        self.listaAdv.heading("#1", tex='ID')
-        self.listaAdv.heading("#2", tex='ADITIVO')
-        self.listaAdv.heading("#3", tex='DEPÓSITO')
-        self.listaAdv.heading("#4", tex='ESTUFA')
-        self.listaAdv.heading("#5", tex='TRANSF.')
-        self.listaAdv.heading("#6", tex='VISC.')
-        self.listaAdv.heading("#7", tex='PESO')
-        self.listaAdv.heading("#8", tex='DENSIDADE')
+                                                                'col7', 'col8', 'col9'))
+        self.listaAdv.place(relx=0.02, rely=0.375, relwidth=0.93, relheight=0.15)
+        self.listaAdv.heading("#0", text='')
+        self.listaAdv.heading("#1", text='ID')
+        self.listaAdv.heading("#2", text='ADITIVO')
+        self.listaAdv.heading("#3", text='DEPÓSITO')
+        self.listaAdv.heading("#4", text='ESTUFA')
+        self.listaAdv.heading("#5", text='TRANSF.')
+        self.listaAdv.heading("#6", text='40ºC.')
+        self.listaAdv.heading("#7", text='100ºC')                                                       
+        self.listaAdv.heading("#8", text='PESO')
+        self.listaAdv.heading("#9", text='DENSIDADE')      
         self.listaAdv.column("#0", width=0)
-        self.listaAdv.column("#1", width=1)
-        self.listaAdv.column("#2", width=35)
-        self.listaAdv.column("#3", width=35)
-        self.listaAdv.column("#4", width=35)
-        self.listaAdv.column("#5", width=30)
-        self.listaAdv.column("#6", width=27)
-        self.listaAdv.column("#7", width=20)
-        self.listaAdv.column("#8", width=35)
+        self.listaAdv.column("#1", width=0)
+        self.listaAdv.column("#2", width=40)
+        self.listaAdv.column("#3", width=50)
+        self.listaAdv.column("#4", width=40)
+        self.listaAdv.column("#5", width=48)
+        self.listaAdv.column("#6", width=45)
+        self.listaAdv.column("#7", width=35)
+        self.listaAdv.column("#8", width=30)
+        self.listaAdv.column("#9", width=60)                                                       
 
         self.scrollistaadvver=Scrollbar(self.main_screen, orient='vertical')
-        self.scrollistaadvver.place(relx=0.965, rely=0.48, relheight=0.45, relwidth=0.025)
-        #self.scrollistaadvhor=Scrollbar(self.main_screen, orient='horizontal')
-        #self.scrollistaadvhor.place(relx=0.05,rely= 0.905, relheight=0.02, relwidth=0.94)
+        self.scrollistaadvver.place(relx=0.95, rely=0.375, relheight=0.15, relwidth=0.025)
         self.listaAdv.configure(yscroll=self.scrollistaadvver.set)
-        #self.listaAdv.configure(xscroll=self.scrollistaadvhor.set)
         self.listaAdv.bind("<Double-1>", self.ondoubleclick) #referência do tipo de interação que estamos fazendo
 
         # frame e botoes de adição
-        self.frame_botoes = Frame(self.main_screen, bg='#004415')
-        self.frame_botoes.place(relx=0.01, rely=0.1, relwidth=0.5, relheight=0.35)
-        self.label_principal=Label(self.main_screen,text='-ADICIONAR ADITIVOS-', bg='#004415', fg='white')
-        self.label_principal.place(relx=0.045, rely=0.05, relwidth=0.5, relheight=0.05)
-        self.botao_inserir = Button(self.frame_botoes, text='INSERIR', command=self.add_dados_db, bd=3, bg='#0a3818', fg='white', font=('arial', 8, 'bold'))
-        self.botao_inserir.place(relx=0.78, rely=0.05, relwidth=0.2, relheight=0.15)
-        self.botao_excluir = Button(self.frame_botoes, text='EXCLUIR', command=self.deleta_campos, bd=3, bg='#0a3818', fg='white', font=('arial', 8, 'bold'))
-        self.botao_excluir.place(relx=0.78, rely=0.25, relwidth=0.2, relheight=0.15)
-        self.botao_editar = Button(self.frame_botoes, text='EDITAR', command=self.alterar_campos, bd=3, bg='#0a3818', fg='white', font=('arial', 8, 'bold'))
-        self.botao_editar.place(relx=0.78, rely=0.435, relwidth=0.2, relheight=0.15)
-        self.botao_limpar = Button(self.frame_botoes, text='LIMPAR', command=self.limpar_campos, bd=3, bg='#0a3818', fg='white', font=('arial', 8, 'bold'))
-        self.botao_limpar.place(relx=0.78, rely=0.635, relwidth=0.2, relheight=0.15)
-        self.botao_pesquisar = Button(self.frame_botoes, text='PESQUISAR', command=self.busca_registro, bd=3,
-                                      bg='#0a3818', fg='white', font=('arial', 8, 'bold'))
-        self.botao_pesquisar.place(relx=0.78, rely=0.81, relwidth=0.2, relheight=0.15)
+        self.frame_botoes = Frame(self.main_screen, bg='#007e44')
+        self.frame_botoes.place(relx=0.00, rely=0.06, relwidth=0.96, relheight=0.3)
+        self.label_principal=Label(self.main_screen,text='ADICIONAR ADITIVOS', bg='#007e44', fg='white')
+        self.label_principal.place(relx=0.01, rely=0.02, relwidth=0.25, relheight=0.02)
+        self.botao_inserir = Button(self.frame_botoes, text='INSERIR', command=self.add_dados_db, bd=3, bg='#0d663d', fg='white', font=('arial', 10, 'bold'))
+        self.botao_inserir.place(relx=0.78, rely=0.001, relwidth=0.2, relheight=0.2)
+        self.botao_excluir = Button(self.frame_botoes, text='EXCLUIR', command=self.deleta_campos, bd=3, bg='#0d663d', fg='white', font=('arial', 10, 'bold'))
+        self.botao_excluir.place(relx=0.78, rely=0.25, relwidth=0.2, relheight=0.2)
+        self.botao_editar = Button(self.frame_botoes, text='EDITAR', command=self.alterar_campos, bd=3, bg='#0d663d', fg='white', font=('arial', 10, 'bold'))
+        self.botao_editar.place(relx=0.78, rely=0.52, relwidth=0.2, relheight=0.2)
+        self.botao_limpar = Button(self.frame_botoes, text='LIMPAR', command=self.limpar_campos, bd=3, bg='#0d663d', fg='white', font=('arial', 10, 'bold'))
+        self.botao_limpar.place(relx=0.78, rely=0.78, relwidth=0.2, relheight=0.2)
 
         ## entrys, labels e dropdown boxes
-        self.add_entry_codigo=Entry(self.frame_botoes, bg='#004415')
-        self.add_entry_codigo.place(relx=0.35, rely=0.05, relwidth=0.20, relheight=0.1)
+        self.add_entry_codigo=Entry(self.frame_botoes, bg='#007e44')
+        self.add_entry_codigo.place(relx=0.35, rely=0.001, relwidth=0.20, relheight=0.1)
 
-        self.aditivo_label_add=Label(self.frame_botoes, text='ADITIVO: ', background='#004415', foreground='white')
-        self.aditivo_label_add.place(relx=0.06, rely=0.05, relheight=0.1, relwidth=0.3)
+        self.aditivo_label_add=Label(self.frame_botoes, text='ADITIVO: ', background='#007e44', foreground='white')
+        self.aditivo_label_add.place(relx=0.09, rely=0.001, relheight=0.1, relwidth=0.1)
         self.add_entry_aditivo=Entry(self.frame_botoes)
-        self.add_entry_aditivo.place(relx=0.29, rely=0.05, relwidth=0.47, relheight=0.1)
+        self.add_entry_aditivo.place(relx=0.29, rely=0.001, relwidth=0.47, relheight=0.1)
 
-        self.deposito_label_add = Label(self.frame_botoes, text='DEPÓSITO:', background='#004415', foreground='white')
-        self.deposito_label_add.place(relx=0.039, rely=0.17, relheight=0.1, relwidth=0.3)
+        self.deposito_label_add = Label(self.frame_botoes, text='DEPÓSITO:', background='#007e44', foreground='white')
+        self.deposito_label_add.place(relx=0.09, rely=0.18, relheight=0.05, relwidth=0.11)
         self.add_entry_deposito = Entry(self.frame_botoes)
-        self.add_entry_deposito.place(relx=0.29, rely=0.17, relwidth=0.47, relheight=0.1)
+        self.add_entry_deposito.place(relx=0.29, rely=0.16, relwidth=0.47, relheight=0.1)
 
-        self.estufa_label_add = Label(self.frame_botoes, text='ESTUFA:', background='#004415', foreground='white')
-        self.estufa_label_add.place(relx=0.058, rely=0.29, relheight=0.1, relwidth=0.3)
+        self.estufa_label_add = Label(self.frame_botoes, text='ESTUFA:', background='#007e44', foreground='white')
+        self.estufa_label_add.place(relx=0.09, rely=0.3, relheight=0.1, relwidth=0.082)
         self.add_entry_estufa = Entry(self.frame_botoes)
-        self.add_entry_estufa.place(relx=0.29, rely=0.29, relwidth=0.47, relheight=0.1)
+        self.add_entry_estufa.place(relx=0.29, rely=0.3, relwidth=0.47, relheight=0.1)
 
-        self.transf_label_add = Label(self.frame_botoes, text='TRÂNSF.:', background='#004415', foreground='white')
-        self.transf_label_add.place(relx=0.0496, rely=0.40, relheight=0.1, relwidth=0.3)
+        self.transf_label_add = Label(self.frame_botoes, text='TRANSFERÊNCIA:', background='#007e44', foreground='white')
+        self.transf_label_add.place(relx=0.08, rely=0.445, relheight=0.1, relwidth=0.20)
         self.add_entry_transf = Entry(self.frame_botoes)
-        self.add_entry_transf.place(relx=0.29, rely=0.40, relwidth=0.47, relheight=0.1)
+        self.add_entry_transf.place(relx=0.29, rely=0.445, relwidth=0.47, relheight=0.1)
 
-        self.visc_label_add = Label(self.frame_botoes, text='VISCOSIDADE:', background='#004415', foreground='white')
-        self.visc_label_add.place(relx=0.014, rely=0.51, relheight=0.1, relwidth=0.3)
-        self.add_entry_visc = Entry(self.frame_botoes)
-        self.add_entry_visc.place(relx=0.29, rely=0.51, relwidth=0.47, relheight=0.1)
+        self.visc_label=Label(self.frame_botoes, text='VISCOSIDADE:', background='#007e44', foreground='white')
+        self.visc_label.place(relx=0.019, rely=0.59, relheight=0.1, relwidth=0.3)
+        self.visc1_label_add = Label(self.frame_botoes, text='40ºC:', background='#007e44', foreground='white')
+        self.visc1_label_add.place(relx=0.27, rely=0.59, relheight=0.1, relwidth=0.1)
+        self.add_entry_visc1 = Entry(self.frame_botoes)
+        self.add_entry_visc1.place(relx=0.36, rely=0.59, relwidth=0.15, relheight=0.1)
 
-        self.peso_label_add = Label(self.frame_botoes, text='PESO:', background='#004415', foreground='white')
-        self.peso_label_add.place(relx=0.0762, rely=0.62, relheight=0.1, relwidth=0.3)
+        self.visc2_label_add = Label(self.frame_botoes, text='100ºC:', background='#007e44', foreground='white')
+        self.visc2_label_add.place(relx=0.515, rely=0.59, relheight=0.1, relwidth=0.1)
+        self.add_entry_visc2 = Entry(self.frame_botoes)
+        self.add_entry_visc2.place(relx=0.61, rely=0.59, relwidth=0.15, relheight=0.1)
+
+        self.peso_label_add = Label(self.frame_botoes, text='PESO:', background='#007e44', foreground='white')
+        self.peso_label_add.place(relx=0.075, rely=0.74, relheight=0.1, relwidth=0.1)
         self.add_entry_peso = Entry(self.frame_botoes)
-        self.add_entry_peso.place(relx=0.29, rely=0.62, relwidth=0.47, relheight=0.1)
+        self.add_entry_peso.place(relx=0.29, rely=0.74, relwidth=0.47, relheight=0.1)
 
-        self.dens_label_add = Label(self.frame_botoes, text='DENSIDADE:', background='#004415', foreground='white')
-        self.dens_label_add.place(relx=0.027, rely=0.73, relheight=0.1, relwidth=0.3)
+        self.dens_label_add = Label(self.frame_botoes, text='DENSIDADE:', background='#007e44', foreground='white')
+        self.dens_label_add.place(relx=0.092, rely=0.88, relheight=0.1, relwidth=0.13)
         self.add_entry_dens = Entry(self.frame_botoes)
-        self.add_entry_dens.place(relx=0.29, rely=0.73, relwidth=0.47, relheight=0.1)
+        self.add_entry_dens.place(relx=0.29, rely=0.88, relwidth=0.47, relheight=0.1)
 
-        ''''#### frame de pesquisa
-        self.frame_pesquisa = Frame(self.main_screen, bg='#004415')
-        self.frame_pesquisa.place(relx=0.05, rely=0.1, relwidth=0.5, relheight=0.43)
-        self.label_pesquisa=Label(self.frame_pesquisa, text='PESQUISE O ADITIVO', background='#004415', foreground='white')
-        self.label_pesquisa.place(relx=0.163, rely=0.07, relwidth=0.356, relheight=0.1)
-        self.botao_pesquisar=Button(self.frame_pesquisa, text='PESQUISAR', command=self.busca_registro, bd=3, bg='#0a3818', fg='white', font=('arial', 8, 'bold'))
-        self.botao_pesquisar.place(relx=0.66, rely=0.18, relwidth=0.27, relheight=0.1)
-        self.pesquisa_entry=Entry(self.frame_pesquisa)
-        self.pesquisa_entry.place(relx=0.16, rely=0.18, relwidth=0.48, relheight=0.1)
-            # LABELS DE CONSULTA
-        self.label_aditivo=Label(self.frame_pesquisa, text='ADITIVO: ', background='#004415', foreground='white')
-        self.label_aditivo.place(relx=0.14, rely=0.32, relwidth=0.15, relheight=0.1)
-        self.entry_aditivo=Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_aditivo.place(relx=0.31 ,rely=0.32, relwidth=0.55, relheight=0.1)
+        ### frame de pesquisa
+        ###.# display de pesquisa 
+        self.frame_pesquisa=Frame(self.main_screen, bg='#007e44')
+        self.frame_pesquisa.place(relx=0.00, rely=0.55, relwidth=0.96, relheight=0.3)
 
-        self.label_dep=Label(self.frame_pesquisa, text='DEPÓSITO: ', background='#004415', foreground='white')
-        self.label_dep.place(relx=0.115, rely=0.45, relwidth=0.17, relheight=0.1)
-        self.entry_dep = Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_dep.place(relx=0.31, rely=0.45, relwidth=0.55, relheight=0.1)
+        ###.## botão de pesquisa 
+        self.botao_pesquisar = Button(self.frame_pesquisa, text='PESQUISAR', command= self.busca_registro, bd=3,
+                                      bg='#0d663d', fg='white', font=('arial', 10, 'bold'))
+        self.botao_pesquisar.place(relx=0.78, rely=0.001, relwidth=0.2, relheight=0.2)
 
-        self.label_estufa=Label(self.frame_pesquisa, text='ESTUFA: ', background='#004415', foreground='white')
-        self.label_estufa.place(relx=0.137, rely=0.58, relwidth=0.17, relheight=0.1)
-        self.entry_estufa = Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_estufa.place(relx=0.31, rely=0.58, relwidth=0.36, relheight=0.1)
+        self.botao_limpar = Button(self.frame_pesquisa, text='LIMPAR', command=self.limpar_campos_pesquisa, bd=3, bg='#0d663d', fg='white', font=('arial', 10, 'bold'))
+        self.botao_limpar.place(relx=0.78, rely=0.3, relwidth=0.2, relheight=0.2)
+       
+        ###.#### label de entry
+        self.ps_entry_codigo=Entry(self.frame_pesquisa, bg='#007e44')
+        self.ps_entry_codigo.place(relx=0.35, rely=0.001, relwidth=0.20, relheight=0.1)
 
-        self.label_transf = Label(self.frame_pesquisa, text='TRANSFERÊNCIA: ', background='#004415', foreground='white')
-        self.label_transf.place(relx=0.017, rely=0.70, relwidth=0.27, relheight=0.1)
-        self.entry_transf = Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_transf.place(relx=0.31, rely=0.70, relwidth=0.25, relheight=0.1)
+        self.ps_label_add=Label(self.frame_pesquisa, text='ADITIVO: ', background='#007e44', foreground='white')
+        self.ps_label_add.place(relx=0.09, rely=0.001, relheight=0.1, relwidth=0.1)
+        self.ps_entry_aditivo=Entry(self.frame_pesquisa)
+        self.ps_entry_aditivo.place(relx=0.29, rely=0.001, relwidth=0.47, relheight=0.1)
 
-        self.label_visc = Label(self.frame_pesquisa, text='VISCOSIDADE: ', background='#004415', foreground='white')
-        self.label_visc.place(relx=0.065, rely=0.82, relwidth=0.22, relheight=0.1)
-        self.entry_visc = Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_visc.place(relx=0.31, rely=0.82, relwidth=0.55, relheight=0.1)
+        self.ps_label_add = Label(self.frame_pesquisa, text='DEPÓSITO:', background='#007e44', foreground='white')
+        self.ps_label_add.place(relx=0.09, rely=0.18, relheight=0.05, relwidth=0.11)
+        self.ps_entry_deposito = Entry(self.frame_pesquisa)
+        self.ps_entry_deposito.place(relx=0.29, rely=0.16, relwidth=0.47, relheight=0.1)
 
-        self.label_peso = Label(self.frame_pesquisa, text='PESO: ', background='#004415', foreground='white')
-        self.label_peso.place(relx=0.688, rely=0.58, relwidth=0.10, relheight=0.1)
-        self.entry_peso = Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_peso.place(relx=0.798, rely=0.58, relwidth=0.15, relheight=0.1)
+        self.ps_label_add = Label(self.frame_pesquisa, text='ESTUFA:', background='#007e44', foreground='white')
+        self.ps_label_add.place(relx=0.09, rely=0.3, relheight=0.1, relwidth=0.082)
+        self.ps_entry_estufa = Entry(self.frame_pesquisa)
+        self.ps_entry_estufa.place(relx=0.29, rely=0.3, relwidth=0.47, relheight=0.1)
 
-        self.label_dens = Label(self.frame_pesquisa, text='DENSIDADE: ', background='#004415', foreground='white')
-        self.label_dens.place(relx=0.58, rely=0.70, relwidth=0.22, relheight=0.1)
-        self.entry_dens = Entry(self.frame_pesquisa, background='#004415', foreground='white')
-        self.entry_dens.place(relx=0.798, rely=0.70, relwidth=0.15, relheight=0.1)'''
+        self.ps_label_transf = Label(self.frame_pesquisa, text='TRANSFERÊNCIA:', background='#007e44', foreground='white')
+        self.ps_label_transf.place(relx=0.08, rely=0.445, relheight=0.1, relwidth=0.20)
+        self.ps_entry_transf = Entry(self.frame_pesquisa)
+        self.ps_entry_transf.place(relx=0.29, rely=0.445, relwidth=0.47, relheight=0.1)
+
+        self.ps_label=Label(self.frame_pesquisa, text='VISCOSIDADE:', background='#007e44', foreground='white')
+        self.ps_label.place(relx=0.019, rely=0.59, relheight=0.1, relwidth=0.3)
+        self.visc1_label_ps = Label(self.frame_pesquisa, text='40ºC:', background='#007e44', foreground='white')
+        self.visc1_label_ps.place(relx=0.27, rely=0.59, relheight=0.1, relwidth=0.1)
+        self.ps_entry_visc1 = Entry(self.frame_pesquisa)
+        self.ps_entry_visc1.place(relx=0.36, rely=0.59, relwidth=0.15, relheight=0.1)
+
+        self.visc2_label_ps = Label(self.frame_pesquisa, text='100ºC:', background='#007e44', foreground='white')
+        self.visc2_label_ps.place(relx=0.515, rely=0.59, relheight=0.1, relwidth=0.1)
+        self.ps_entry_visc2 = Entry(self.frame_pesquisa)
+        self.ps_entry_visc2.place(relx=0.61, rely=0.59, relwidth=0.15, relheight=0.1)
+
+        self.peso_label_ps = Label(self.frame_pesquisa, text='PESO:', background='#007e44', foreground='white')
+        self.peso_label_ps.place(relx=0.075, rely=0.74, relheight=0.1, relwidth=0.1)
+        self.ps_entry_peso = Entry(self.frame_pesquisa)
+        self.ps_entry_peso.place(relx=0.29, rely=0.74, relwidth=0.47, relheight=0.1)
+
+        self.dens_label_ps = Label(self.frame_pesquisa, text='DENSIDADE:', background='#007e44', foreground='white')
+        self.dens_label_ps.place(relx=0.092, rely=0.88, relheight=0.1, relwidth=0.13)
+        self.ps_entry_dens = Entry(self.frame_pesquisa)
+        self.ps_entry_dens.place(relx=0.29, rely=0.88, relwidth=0.47, relheight=0.1)
+
+
+    #### menu bar
+
     def menu_bar(self):
         menubar=Menu(self.main_screen)
         self.main_screen.config(menu=menubar)
-        filemenu=Menu(menubar)
-        filemenu2=Menu(menubar)
+        filemenu=Menu(menubar, background='#007e44', foreground='white', border=1, tearoff=0)
+        filemenu2=Menu(menubar, background='#007e44', foreground='white', relief='flat', border=1, tearoff=0)
 
         def Quit(): self.main_screen.destroy()
 
@@ -288,9 +343,9 @@ class Application(Funcs):
 
         filemenu.add_command(label="Sair", command=Quit)
         filemenu2.add_command(label="Versão do programa = 1.0")
-        filemenu2.add_command(label="Python, 3.10 (Libraries: TKinter, MySql")
+        filemenu2.add_command(label="Python, 3.10 (Libraries: TKinter, MySql)")
         filemenu2.add_command(label="Código idealizado por: Vitor Roque (Op.3)")
-        filemenu2.add_command(label="Código realizado por: Vitor Pereira(Software Developer)")
+        filemenu2.add_command(label="Código realizado por: Vitor Pereira (Software Developer)")
 
 # mantendo loop da janela
 Application()
